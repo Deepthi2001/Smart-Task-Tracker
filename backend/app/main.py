@@ -3,6 +3,7 @@ from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from . import schemas
+from .database import db
 
 app = FastAPI(title="Smart Task Tracker API (Scaffold)", version="0.0.1")
 
@@ -19,27 +20,72 @@ app.add_middleware(
 def healthz():
     return {"ok": True}
 
-# --- Stubs for candidate to implement ---
+# --- Implemented routes ---
 @app.get("/api/projects", response_model=List[schemas.ProjectRead])
 def list_projects():
-    raise HTTPException(status_code=501, detail="Not Implemented")
+    """List all projects."""
+    return db.list_projects()
 
 @app.post("/api/projects", response_model=schemas.ProjectRead)
 def create_project(body: schemas.ProjectCreate):
-    raise HTTPException(status_code=501, detail="Not Implemented")
+    """Create a new project."""
+    return db.create_project(body)
 
 @app.get("/api/projects/{project_id}/tasks", response_model=List[schemas.TaskRead])
 def list_tasks(project_id: int, status: Optional[schemas.Status] = Query(None)):
-    raise HTTPException(status_code=501, detail="Not Implemented")
+    """List tasks for a project, optionally filtered by status."""
+    # Verify project exists
+    project = db.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return db.list_tasks(project_id, status)
 
 @app.post("/api/projects/{project_id}/tasks", response_model=schemas.TaskRead)
 def create_task(project_id: int, body: schemas.TaskCreate):
-    raise HTTPException(status_code=501, detail="Not Implemented")
+    """Create a new task for a project."""
+    # Verify project exists
+    project = db.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return db.create_task(project_id, body)
 
 @app.patch("/api/tasks/{task_id}", response_model=schemas.TaskRead)
 def update_task(task_id: int, body: schemas.TaskUpdate):
-    raise HTTPException(status_code=501, detail="Not Implemented")
+    """Update a task."""
+    updated_task = db.update_task(task_id, body)
+    if not updated_task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return updated_task
 
 @app.post("/api/ai/intake", response_model=schemas.AIIntakeResponse)
 def ai_intake(body: schemas.AIIntakeRequest):
-    raise HTTPException(status_code=501, detail="Not Implemented")
+    """
+    Fake AI intake adapter that suggests title and priority based on input text.
+    This is a deterministic fake implementation for demonstration purposes.
+    """
+    input_text = body.input.lower()
+    
+    # Simple heuristic-based fake AI:
+    # - Extract first sentence or first 50 chars as title
+    # - Determine priority based on keywords
+    title = input_text.split('.')[0].strip()
+    if len(title) > 50:
+        title = title[:50].rsplit(' ', 1)[0] + "..."
+    if not title:
+        title = input_text[:50].strip()
+    
+    # Priority detection based on keywords
+    priority: schemas.Priority = "Med"
+    high_priority_keywords = ["urgent", "asap", "critical", "important", "emergency", "deadline", "fix", "bug", "broken"]
+    low_priority_keywords = ["nice to have", "optional", "later", "someday", "maybe"]
+    
+    if any(keyword in input_text for keyword in high_priority_keywords):
+        priority = "High"
+    elif any(keyword in input_text for keyword in low_priority_keywords):
+        priority = "Low"
+    
+    # Capitalize first letter of title
+    if title:
+        title = title[0].upper() + title[1:] if len(title) > 1 else title.upper()
+    
+    return schemas.AIIntakeResponse(title=title, priority=priority)
