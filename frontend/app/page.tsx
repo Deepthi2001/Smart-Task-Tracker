@@ -26,6 +26,66 @@ interface AIIntakeResponse {
   priority: Priority;
 }
 
+function Modal(props: {
+  open: boolean;
+  title: string;
+  onClose: () => void;
+  children: any;
+}) {
+  const { open, title, onClose, children } = props;
+  if (!open) return null;
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(15, 23, 42, 0.4)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 50,
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: 'white',
+          borderRadius: 12,
+          boxShadow: '0 20px 45px rgba(15,23,42,0.25)',
+          maxWidth: 520,
+          width: '100%',
+          padding: 24,
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 16,
+          }}
+        >
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>{title}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              fontSize: 18,
+              lineHeight: 1,
+            }}
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export default function Page() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -412,122 +472,118 @@ export default function Page() {
         </div>
       )}
 
-      {/* Create Task Form */}
-      {showCreateForm && (
-        <div style={{
-          padding: '20px',
-          border: '1px solid #ddd',
-          borderRadius: '8px',
-          marginBottom: '24px',
-          backgroundColor: '#f9fafb',
-        }}>
-          <h2 style={{ marginBottom: '16px', fontSize: '20px' }}>
-            {aiSuggestion ? 'Create Task (AI Suggested)' : 'Create Task'}
-          </h2>
-          {aiSuggestion && (
-            <div style={{
-              padding: '12px',
-              backgroundColor: '#e0f2fe',
-              borderRadius: '4px',
-              marginBottom: '16px',
-              fontSize: '14px',
-            }}>
-              <strong>AI Suggestion:</strong> Title: "{aiSuggestion.title}", Priority: {aiSuggestion.priority}
-            </div>
-          )}
-          <form onSubmit={handleCreateTask}>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-                Title *
-              </label>
-              <input
-                type="text"
-                value={formTitle}
-                onChange={(e) => setFormTitle(e.target.value)}
-                required
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  border: '1px solid #ccc',
-                }}
-              />
-            </div>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-                Description
-              </label>
-              <textarea
-                value={formDescription}
-                onChange={(e) => setFormDescription(e.target.value)}
-                style={{
-                  width: '100%',
-                  minHeight: '80px',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  border: '1px solid #ccc',
-                  fontFamily: 'inherit',
-                }}
-              />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-                  Priority
-                </label>
-                <select
-                  value={formPriority}
-                  onChange={(e) => setFormPriority(e.target.value as Priority)}
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    borderRadius: '4px',
-                    border: '1px solid #ccc',
-                  }}
-                >
-                  <option value="Low">Low</option>
-                  <option value="Med">Med</option>
-                  <option value="High">High</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
-                  Status
-                </label>
-                <select
-                  value={formStatus}
-                  onChange={(e) => setFormStatus(e.target.value as Status)}
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    borderRadius: '4px',
-                    border: '1px solid #ccc',
-                  }}
-                >
-                  <option value="Todo">Todo</option>
-                  <option value="In-Progress">In-Progress</option>
-                  <option value="Done">Done</option>
-                </select>
-              </div>
-            </div>
-            <button
-              type="submit"
-              disabled={loading || !formTitle.trim()}
+      {/* Create Task Modal */}
+      <Modal
+        open={showCreateForm}
+        title={aiSuggestion ? 'Create Task (AI Suggested)' : 'Create Task'}
+        onClose={() => {
+          setShowCreateForm(false);
+          setAiSuggestion(null);
+        }}
+      >
+        {aiSuggestion && (
+          <div style={{
+            padding: '12px',
+            backgroundColor: '#e0f2fe',
+            borderRadius: '4px',
+            marginBottom: '16px',
+            fontSize: '14px',
+          }}>
+            <strong>AI Suggestion:</strong> Title: "{aiSuggestion.title}", Priority: {aiSuggestion.priority}
+          </div>
+        )}
+        <form onSubmit={handleCreateTask}>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+              Title *
+            </label>
+            <input
+              type="text"
+              value={formTitle}
+              onChange={(e) => setFormTitle(e.target.value)}
+              required
               style={{
-                padding: '10px 20px',
-                backgroundColor: loading ? '#ccc' : '#0070f3',
-                color: 'white',
-                border: 'none',
+                width: '100%',
+                padding: '8px',
                 borderRadius: '4px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontWeight: '500',
+                border: '1px solid #ccc',
               }}
-            >
-              {loading ? 'Creating...' : 'Create Task'}
-            </button>
-          </form>
-        </div>
-      )}
+            />
+          </div>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+              Description
+            </label>
+            <textarea
+              value={formDescription}
+              onChange={(e) => setFormDescription(e.target.value)}
+              style={{
+                width: '100%',
+                minHeight: '80px',
+                padding: '8px',
+                borderRadius: '4px',
+                border: '1px solid #ccc',
+                fontFamily: 'inherit',
+              }}
+            />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+                Priority
+              </label>
+              <select
+                value={formPriority}
+                onChange={(e) => setFormPriority(e.target.value as Priority)}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  border: '1px solid #ccc',
+                }}
+              >
+                <option value="Low">Low</option>
+                <option value="Med">Med</option>
+                <option value="High">High</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+                Status
+              </label>
+              <select
+                value={formStatus}
+                onChange={(e) => setFormStatus(e.target.value as Status)}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  border: '1px solid #ccc',
+                }}
+              >
+                <option value="Todo">Todo</option>
+                <option value="In-Progress">In-Progress</option>
+                <option value="Done">Done</option>
+              </select>
+            </div>
+          </div>
+          <button
+            type="submit"
+            disabled={loading || !formTitle.trim()}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: loading ? '#ccc' : '#0070f3',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              fontWeight: '500',
+            }}
+          >
+            {loading ? 'Creating...' : 'Create Task'}
+          </button>
+        </form>
+      </Modal>
 
       {/* Task List */}
       <div>
