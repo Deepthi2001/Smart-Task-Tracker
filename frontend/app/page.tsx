@@ -43,36 +43,23 @@ export default function Page() {
   const [aiSuggestion, setAiSuggestion] = useState<AIIntakeResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [newProjectName, setNewProjectName] = useState('');
 
-  // Initialize: Create or get default project
+  // Initialize: load existing projects
   useEffect(() => {
-    const initializeProject = async () => {
+    const loadProjects = async () => {
       try {
         const response = await fetch(`${API_BASE}/api/projects`);
         if (response.ok) {
           const projectsList = await response.json();
-          if (projectsList.length > 0) {
-            setProjects(projectsList);
-            setSelectedProject(projectsList[0]);
-          } else {
-            // Create default project
-            const createResponse = await fetch(`${API_BASE}/api/projects`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name: 'My Project' }),
-            });
-            if (createResponse.ok) {
-              const newProject = await createResponse.json();
-              setProjects([newProject]);
-              setSelectedProject(newProject);
-            }
-          }
+          setProjects(projectsList);
+          setSelectedProject(projectsList[0] ?? null);
         }
       } catch (err) {
-        setError('Failed to initialize project');
+        setError('Failed to load projects');
       }
     };
-    initializeProject();
+    loadProjects();
   }, []);
 
   // Load tasks when project or filter changes
@@ -200,24 +187,127 @@ export default function Page() {
         </div>
       )}
 
-      {/* Project Selector */}
-      {projects.length > 0 && (
-        <div style={{ marginBottom: '24px' }}>
-          <label style={{ marginRight: '8px', fontWeight: '500' }}>Project:</label>
-          <select
-            value={selectedProject?.id || ''}
-            onChange={(e) => {
-              const project = projects.find(p => p.id === parseInt(e.target.value));
-              setSelectedProject(project || null);
+      {/* Projects header + create project */}
+      <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <h1 style={{ fontSize: '28px', fontWeight: 'bold', margin: 0 }}>Projects</h1>
+          <p style={{ margin: 0, fontSize: '14px', color: '#555' }}>
+            Create a project, select it, then add and manage its tasks.
+          </p>
+        </div>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (!newProjectName.trim()) return;
+            setError(null);
+            try {
+              const response = await fetch(`${API_BASE}/api/projects`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newProjectName.trim() }),
+              });
+              if (response.ok) {
+                const project: Project = await response.json();
+                setProjects((prev) => [...prev, project]);
+                setSelectedProject(project);
+                setNewProjectName('');
+              } else {
+                setError('Failed to create project');
+              }
+            } catch {
+              setError('Failed to create project');
+            }
+          }}
+          style={{ display: 'flex', gap: '8px', alignItems: 'center' }}
+        >
+          <input
+            type="text"
+            placeholder="New project name"
+            value={newProjectName}
+            onChange={(e) => setNewProjectName(e.target.value)}
+            style={{
+              padding: '8px',
+              borderRadius: '4px',
+              border: '1px solid #ccc',
+              minWidth: '180px',
             }}
-            style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+          />
+          <button
+            type="submit"
+            disabled={!newProjectName.trim()}
+            style={{
+              padding: '8px 14px',
+              backgroundColor: newProjectName.trim() ? '#111827' : '#9ca3af',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: newProjectName.trim() ? 'pointer' : 'not-allowed',
+              fontSize: '14px',
+            }}
           >
-            {projects.map(p => (
-              <option key={p.id} value={p.id}>{p.name}</option>
+            + Create Project
+          </button>
+        </form>
+      </div>
+
+      {/* Project Selector + delete */}
+      <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div>
+          <label style={{ marginRight: '8px', fontWeight: '500' }}>Select project:</label>
+          <select
+            value={selectedProject?.id ?? ''}
+            onChange={(e) => {
+              const id = Number(e.target.value);
+              const project = projects.find((p) => p.id === id) ?? null;
+              setSelectedProject(project);
+              setTasks([]); // clear tasks until reload
+            }}
+            style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', minWidth: '220px' }}
+          >
+            <option value="">— Choose a project —</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
             ))}
           </select>
         </div>
-      )}
+        <button
+          type="button"
+          disabled={!selectedProject}
+          onClick={async () => {
+            if (!selectedProject) return;
+            const confirmed = window.confirm(`Delete project "${selectedProject.name}" and all of its tasks?`);
+            if (!confirmed) return;
+            setError(null);
+            try {
+              const response = await fetch(`${API_BASE}/api/projects/${selectedProject.id}`, {
+                method: 'DELETE',
+              });
+              if (response.status === 204) {
+                setProjects((prev) => prev.filter((p) => p.id !== selectedProject.id));
+                setSelectedProject(null);
+                setTasks([]);
+              } else {
+                setError('Failed to delete project');
+              }
+            } catch {
+              setError('Failed to delete project');
+            }
+          }}
+          style={{
+            padding: '8px 12px',
+            borderRadius: '4px',
+            border: '1px solid #dc2626',
+            backgroundColor: selectedProject ? '#fee2e2' : '#f3f4f6',
+            color: selectedProject ? '#b91c1c' : '#9ca3af',
+            cursor: selectedProject ? 'pointer' : 'not-allowed',
+            fontSize: '13px',
+          }}
+        >
+          Delete Project
+        </button>
+      </div>
 
       {/* Status Filter */}
       <div style={{ marginBottom: '24px', display: 'flex', gap: '8px', alignItems: 'center' }}>

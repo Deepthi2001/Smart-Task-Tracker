@@ -30,6 +30,34 @@ def test_create_and_list_projects():
     assert len(projects) == 1
     assert projects[0]["name"] == "Test Project"
 
+def test_delete_project_and_its_tasks():
+    """Happy path: Delete a project and ensure its tasks are removed."""
+    # Create project
+    project_resp = client.post("/api/projects", json={"name": "Project to delete"})
+    assert project_resp.status_code == 200
+    project_id = project_resp.json()["id"]
+
+    # Create two tasks under this project
+    for i in range(2):
+        r = client.post(
+            f"/api/projects/{project_id}/tasks",
+            json={"title": f"Task {i+1}", "status": "Todo", "priority": "Med"},
+        )
+        assert r.status_code == 200
+
+    # Delete project
+    delete_resp = client.delete(f"/api/projects/{project_id}")
+    assert delete_resp.status_code == 204
+
+    # Project should be gone
+    list_resp = client.get("/api/projects")
+    projects = list_resp.json()
+    assert all(p["id"] != project_id for p in projects)
+
+    # Listing tasks for that project should now 404
+    tasks_resp = client.get(f"/api/projects/{project_id}/tasks")
+    assert tasks_resp.status_code == 404
+
 def test_create_task_and_list_with_filter():
     """Happy path: Create tasks and filter by status."""
     # Create a project

@@ -31,6 +31,13 @@ def create_project(body: schemas.ProjectCreate):
     """Create a new project."""
     return db.create_project(body)
 
+@app.delete("/api/projects/{project_id}", status_code=204)
+def delete_project(project_id: int):
+    """Delete a project and all of its tasks."""
+    deleted = db.delete_project(project_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Project not found")
+
 @app.get("/api/projects/{project_id}/tasks", response_model=List[schemas.TaskRead])
 def list_tasks(project_id: int, status: Optional[schemas.Status] = Query(None)):
     """List tasks for a project, optionally filtered by status."""

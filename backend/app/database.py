@@ -28,6 +28,20 @@ class Database:
         """List all projects."""
         return list(self.projects.values())
     
+    def delete_project(self, project_id: int) -> bool:
+        """Delete a project and all of its tasks. Returns True if deleted."""
+        if project_id not in self.projects:
+            return False
+        # Remove the project
+        del self.projects[project_id]
+        # Remove tasks belonging to this project
+        self.tasks = {
+            task_id: task
+            for task_id, task in self.tasks.items()
+            if task.project_id != project_id
+        }
+        return True
+    
     def create_task(self, project_id: int, task: schemas.TaskCreate) -> schemas.TaskRead:
         """Create a new task for a project."""
         task_id = self._task_counter
