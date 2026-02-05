@@ -26,10 +26,13 @@ def list_projects():
     """List all projects."""
     return db.list_projects()
 
-@app.post("/api/projects", response_model=schemas.ProjectRead)
+@app.post("/api/projects", response_model=schemas.ProjectRead, status_code=201)
 def create_project(body: schemas.ProjectCreate):
     """Create a new project."""
-    return db.create_project(body)
+    try:
+        return db.create_project(body)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.delete("/api/projects/{project_id}", status_code=204)
 def delete_project(project_id: int):

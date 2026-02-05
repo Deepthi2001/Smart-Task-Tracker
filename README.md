@@ -88,7 +88,7 @@ Then open:
 
 1. **In-Memory Database**: Chose dictionary-based storage for simplicity and speed of implementation. The design is database-agnostic and can easily be swapped for SQLite or PostgreSQL without changing the API layer.
 
-2. **Auto-Project Creation**: Frontend automatically creates a default "My Project" if no projects exist, improving UX for first-time users.
+2. **Project Creation**: create new projects with custom project name, and manage projects by deleting selected projects.
 
 3. **Fake AI Adapter**: Implemented a deterministic keyword-based system rather than a true ML model, as specified. This provides consistent, predictable results for demonstration:
    - Extracts title from first sentence (max 50 chars)

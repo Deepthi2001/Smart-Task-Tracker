@@ -12,8 +12,15 @@ class Database:
         self._project_counter = 1
         self._task_counter = 1
     
+    def project_name_exists(self, name: str) -> bool:
+        """Check if a project with the given name already exists."""
+        return any(p.name.lower() == name.lower() for p in self.projects.values())
+    
     def create_project(self, project: schemas.ProjectCreate) -> schemas.ProjectRead:
         """Create a new project."""
+        if self.project_name_exists(project.name):
+            raise ValueError(f"A project with name '{project.name}' already exists")
+            
         project_id = self._project_counter
         self._project_counter += 1
         project_read = schemas.ProjectRead(id=project_id, name=project.name)
